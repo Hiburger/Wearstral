@@ -11,6 +11,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.Button
+import androidx.wear.compose.material3.CircularProgressIndicator
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TimeText
 import androidx.wear.compose.navigation.SwipeDismissableNavHost
@@ -20,46 +21,56 @@ import dev.wearstral.R
 
 @Composable
 fun App(
-    apiKey: String?,
+    state: ApiKeyState,
     onSaveKey: (String) -> Unit,
     onClearKey: () -> Unit
 ) {
-    if (apiKey == null) {
-        KeyScreen(
+    when (state) {
+        ApiKeyState.Loading -> AppScaffold(timeText = { TimeText() }) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+        ApiKeyState.Unset -> KeyScreen(
             currentKey = null,
             onSave = onSaveKey,
             onClear = onClearKey
         )
-    } else {
-        val navController = rememberSwipeDismissableNavController()
-        SwipeDismissableNavHost(
-            navController = navController,
-            startDestination = "chat"
-        ) {
-            composable("chat") {
-                AppScaffold(timeText = { TimeText() }) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = stringResource(R.string.chat_placeholder))
-                            Button(
-                                onClick = { navController.navigate("settings") },
-                                modifier = Modifier.padding(top = 12.dp)
-                            ) {
-                                Text(text = stringResource(R.string.settings))
+        is ApiKeyState.Set -> {
+            val apiKey = state.key
+            val navController = rememberSwipeDismissableNavController()
+            SwipeDismissableNavHost(
+                navController = navController,
+                startDestination = "chat"
+            ) {
+                composable("chat") {
+                    AppScaffold(timeText = { TimeText() }) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(text = stringResource(R.string.chat_placeholder))
+                                Button(
+                                    onClick = { navController.navigate("settings") },
+                                    modifier = Modifier.padding(top = 12.dp)
+                                ) {
+                                    Text(text = stringResource(R.string.settings))
+                                }
                             }
                         }
                     }
                 }
-            }
-            composable("settings") {
-                KeyScreen(
-                    currentKey = apiKey,
-                    onSave = onSaveKey,
-                    onClear = onClearKey
-                )
+                composable("settings") {
+                    KeyScreen(
+                        currentKey = apiKey,
+                        onSave = onSaveKey,
+                        onClear = onClearKey
+                    )
+                }
             }
         }
     }

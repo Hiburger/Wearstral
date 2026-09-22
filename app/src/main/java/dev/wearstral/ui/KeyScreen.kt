@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -117,8 +118,10 @@ fun KeyScreen(
                 }
             }
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(top = 12.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp)
             ) {
                 CompactButton(
                     onClick = {
@@ -126,24 +129,40 @@ fun KeyScreen(
                         input = ""
                     },
                     enabled = input.isNotBlank(),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = colorResource(R.color.mistral_orange),
                         contentColor = Color.White
                     )
                 ) {
-                    Text(text = stringResource(R.string.key_save))
-                }
-                CompactButton(
-                    onClick = {
-                        input = ""
-                        onClear()
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White,
-                        contentColor = Color.Black
+                    Text(
+                        text = stringResource(R.string.key_save),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
-                ) {
-                    Text(text = stringResource(R.string.key_clear))
+                }
+                if (currentKey != null) {
+                    CompactButton(
+                        onClick = {
+                            input = ""
+                            onClear()
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = Color.Black
+                        )
+                    ) {
+                        Text(
+                            text = stringResource(R.string.key_clear),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
         }
