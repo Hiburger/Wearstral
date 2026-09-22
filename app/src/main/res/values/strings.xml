@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Wearstral</string>
+    <string name="key_title_new">Enter your Mistral API&#160;key</string>
+    <string name="key_title_saved">Key saved ••••%1$s</string>
+    <string name="key_show">Show</string>
+    <string name="key_hide">Hide</string>
+    <string name="key_save">Save</string>
+    <string name="key_clear">Clear</string>
+    <string name="chat_placeholder">Chat coming in the next step</string>
+    <string name="settings">Settings</string>
 </resources>

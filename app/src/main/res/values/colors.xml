@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#FF7000</color>
+    <color name="mistral_orange">#FF7000</color>
+    <color name="ic_launcher_background">@color/mistral_orange</color>
 </resources>
