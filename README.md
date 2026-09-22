@@ -9,7 +9,7 @@ This is **not** an official Mistral project. It does not wrap chat.mistral.ai; i
 
 ## Status
 
-Early development. Currently a wearable app scaffold that builds and installs
+Early development. Currently a Wear OS app scaffold that builds and installs.
 
 ## Roadmap
 
