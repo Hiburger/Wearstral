@@ -32,4 +32,5 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.wear.compose.material3)
     implementation(libs.androidx.wear.compose.navigation)
+    implementation(libs.vosk.android)
 }

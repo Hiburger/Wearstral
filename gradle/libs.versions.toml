@@ -5,6 +5,7 @@ activityCompose = "1.13.0"
 wearCompose = "1.6.2"
 datastore = "1.2.1"
 materialIconsExtended = "1.7.8"
+vosk = "0.3.47"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
@@ -12,6 +13,7 @@ androidx-compose-material-icons-extended = { group = "androidx.compose.material"
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 androidx-wear-compose-material3 = { group = "androidx.wear.compose", name = "compose-material3", version.ref = "wearCompose" }
 androidx-wear-compose-navigation = { group = "androidx.wear.compose", name = "compose-navigation", version.ref = "wearCompose" }
+vosk-android = { group = "com.alphacephei", name = "vosk-android", version.ref = "vosk" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
