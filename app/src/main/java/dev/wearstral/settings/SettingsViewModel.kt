@@ -17,6 +17,11 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         .map { key -> key?.let(ApiKeyState::Set) ?: ApiKeyState.Unset }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ApiKeyState.Loading)
 
+    val nostalgicMode: StateFlow<Boolean> = repository.nostalgicMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
     fun saveKey(value: String) = viewModelScope.launch { repository.setKey(value) }
     fun clearKey() = viewModelScope.launch { repository.clearKey() }
+    fun setNostalgicMode(enabled: Boolean) =
+        viewModelScope.launch { repository.setNostalgicMode(enabled) }
 }
