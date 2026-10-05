@@ -7,12 +7,28 @@ android {
     namespace = "dev.wearstral"
     compileSdk = 36
 
+    // release signing credentials come from ~/.gradle/gradle.properties
+    // (wearstralReleaseStoreFile / StorePassword / KeyAlias / KeyPassword);
+    // when they are absent the release APK is simply left unsigned
+    val releaseStoreFile = providers.gradleProperty("wearstralReleaseStoreFile").orNull
+
+    signingConfigs {
+        if (releaseStoreFile != null) {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                storePassword = providers.gradleProperty("wearstralReleaseStorePassword").get()
+                keyAlias = providers.gradleProperty("wearstralReleaseKeyAlias").get()
+                keyPassword = providers.gradleProperty("wearstralReleaseKeyPassword").get()
+            }
+        }
+    }
+
     defaultConfig {
         applicationId = "dev.wearstral"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "1.0.0"
     }
 
     buildTypes {
@@ -22,6 +38,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            if (releaseStoreFile != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 }
