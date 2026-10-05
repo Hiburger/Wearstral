@@ -1,16 +1,14 @@
 package dev.wearstral.ui
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.wear.compose.material3.AppScaffold
-import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.CircularProgressIndicator
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TimeText
@@ -18,14 +16,44 @@ import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import dev.wearstral.R
+import dev.wearstral.chat.ChatState
+import dev.wearstral.chat.Conversation
+import dev.wearstral.voice.VoiceLanguageUi
+import dev.wearstral.voice.VoiceState
+import kotlinx.coroutines.flow.StateFlow
 
+/**
+ * Nav destinations collect the flows themselves instead of receiving snapshot
+ * values captured in the destination lambda: SwipeDismissableNavHost does not
+ * reliably re-invoke destination content when only the captured values change,
+ * which used to freeze the chat screen on stale state until re-navigation.
+ */
 @Composable
 fun App(
-    state: ApiKeyState,
+    keyStateFlow: StateFlow<ApiKeyState>,
+    chatStateFlow: StateFlow<ChatState>,
+    nostalgicModeFlow: StateFlow<Boolean>,
+    historyFlow: StateFlow<List<Conversation>>,
+    activeConversationIdFlow: StateFlow<Long>,
+    voiceRowsFlow: StateFlow<List<VoiceLanguageUi>>,
+    voiceStateFlow: StateFlow<VoiceState>,
+    voiceFinalFlow: StateFlow<String?>,
+    onSend: (String, String) -> Unit,
+    onNewChat: () -> Unit,
+    onOpenConversation: (Long) -> Unit,
+    onDeleteConversation: (Long) -> Unit,
+    onTogglePin: (Long) -> Unit,
+    onClearHistory: () -> Unit,
     onSaveKey: (String) -> Unit,
-    onClearKey: () -> Unit
+    onClearKey: () -> Unit,
+    onSetNostalgic: (Boolean) -> Unit,
+    onVoiceTap: () -> Unit,
+    onVoiceFinalConsumed: () -> Unit,
+    onVoiceLanguageTap: (String) -> Unit
 ) {
-    when (state) {
+    val nostalgic by nostalgicModeFlow.collectAsState()
+    val keyState by keyStateFlow.collectAsState()
+    when (keyState) {
         ApiKeyState.Loading -> AppScaffold(timeText = { TimeText() }) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -40,33 +68,86 @@ fun App(
             onClear = onClearKey
         )
         is ApiKeyState.Set -> {
-            val apiKey = state.key
             val navController = rememberSwipeDismissableNavController()
             SwipeDismissableNavHost(
                 navController = navController,
                 startDestination = "chat"
             ) {
                 composable("chat") {
-                    AppScaffold(timeText = { TimeText() }) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(text = stringResource(R.string.chat_placeholder))
-                                Button(
-                                    onClick = { navController.navigate("settings") },
-                                    modifier = Modifier.padding(top = 12.dp)
-                                ) {
-                                    Text(text = stringResource(R.string.settings))
-                                }
-                            }
-                        }
+                    val destKeyState by keyStateFlow.collectAsState()
+                    val chatState by chatStateFlow.collectAsState()
+                    val history by historyFlow.collectAsState()
+                    val activeId by activeConversationIdFlow.collectAsState()
+                    val voiceState by voiceStateFlow.collectAsState()
+                    val voiceFinal by voiceFinalFlow.collectAsState()
+                    val apiKey = (destKeyState as? ApiKeyState.Set)?.key
+                    if (apiKey != null) {
+                        ChatScreen(
+                            state = chatState,
+                            nostalgic = nostalgic,
+                            history = history,
+                            activeId = activeId,
+                            voiceState = voiceState,
+                            voiceFinal = voiceFinal,
+                            onSend = { onSend(apiKey, it) },
+                            onNewChat = onNewChat,
+                            onOpenSettings = { navController.navigate("settings") },
+                            onOpenHistory = { navController.navigate("history") },
+                            onOpenConversation = onOpenConversation,
+                            onVoiceTap = onVoiceTap,
+                            onVoiceFinalConsumed = onVoiceFinalConsumed
+                        )
                     }
                 }
+                composable("history") {
+                    val history by historyFlow.collectAsState()
+                    HistoryScreen(
+                        history = history,
+                        onOpen = { id ->
+                            onOpenConversation(id)
+                            navController.popBackStack()
+                        },
+                        onDelete = onDeleteConversation,
+                        onTogglePin = onTogglePin
+                    )
+                }
+                composable("info") {
+                    val voiceRows by voiceRowsFlow.collectAsState()
+                    val context = LocalContext.current
+                    val version = try {
+                        context.packageManager
+                            .getPackageInfo(context.packageName, 0).versionName ?: "?"
+                    } catch (_: Exception) {
+                        "?"
+                    }
+                    InfoScreen(
+                        version = version,
+                        modelName = "mistral-small-latest",
+                        nostalgic = nostalgic,
+                        voiceModel = voiceRows.firstOrNull { it.active }?.language?.name
+                    )
+                }
+                composable("voice") {
+                    val rows by voiceRowsFlow.collectAsState()
+                    VoiceScreen(
+                        rows = rows,
+                        onLanguageTap = onVoiceLanguageTap
+                    )
+                }
                 composable("settings") {
+                    SettingsScreen(
+                        nostalgic = nostalgic,
+                        onToggleNostalgic = onSetNostalgic,
+                        onOpenApiKey = { navController.navigate("key") },
+                        onOpenVoice = { navController.navigate("voice") },
+                        onClearHistory = onClearHistory,
+                        onOpenInfo = { navController.navigate("info") }
+                    )
+                }
+                composable("key") {
+                    val destKeyState by keyStateFlow.collectAsState()
                     KeyScreen(
-                        currentKey = apiKey,
+                        currentKey = (destKeyState as? ApiKeyState.Set)?.key,
                         onSave = onSaveKey,
                         onClear = onClearKey
                     )
