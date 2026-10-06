@@ -43,20 +43,19 @@ Later, I will try to add support for people that don't want to use their API or 
 
 ## Status
 
-Early development, but very usable! Chat, history, voice input and settings all work on real
-watches and the emulator.
+Early development, but very very usable! :) 
 
 ## Roadmap
 
-1. Wear OS + Compose scaffold -> OK
-2. API key set up screen -> OK
-3. Safe local API storage -> OK
-4. Single conversation with non-streaming replies -> OK
-5. Conversation history -> OK (persistent, side-panel recents + full history, pin/delete)
-6. Voice input -> OK (on-device Vosk transcription, downloadable language models in Settings)
-7. Possibility to pick it as main assistant (instead of, let's say, Gemini)
-8. SSE streaming responses with haptic feedback
-9. Model picker (list + free-text entry for custom model IDs), round-screen polish
+1.  Wear OS + Compose scaffold -> OK
+2.  API key set up screen -> OK
+3.  Safe local API storage -> OK
+4.  Single conversation with non-streaming replies -> OK
+5.  Conversation history -> OK
+6.  Voice input -> OK
+7.  Possibility to pick it as main assistant 
+8.  SSE streaming responses with haptic feedback
+9.  Model picker
 10. Add support for other AI providers via API key (Anthropic, Google, OpenAI, Mammouth AI, OpenRouter,...)
 11. Add possibility to use a very small local LLM, that will run on-device exclusively
 
