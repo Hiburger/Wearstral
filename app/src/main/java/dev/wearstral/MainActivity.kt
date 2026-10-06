@@ -14,6 +14,7 @@ import androidx.wear.compose.material3.MaterialTheme
 import dev.wearstral.chat.ChatViewModel
 import dev.wearstral.settings.SettingsViewModel
 import dev.wearstral.ui.App
+import dev.wearstral.update.ApkInstaller
 import dev.wearstral.voice.VoiceViewModel
 
 class MainActivity : ComponentActivity() {
@@ -38,6 +39,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ApkInstaller.cleanup(this)
         if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) {
             ContextCompat.registerReceiver(
                 this,

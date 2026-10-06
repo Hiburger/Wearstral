@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,9 +26,9 @@ class ChatHistoryRepository(context: Context) {
     private val _history = MutableStateFlow<List<Conversation>>(emptyList())
     val history: StateFlow<List<Conversation>> = _history.asStateFlow()
 
-    init {
-        _history.value = load()
-    }
+    // history is loaded off the main thread; every mutation waits for the load
+    // to finish first so nothing can be persisted before the disk state is read
+    private val initialLoad: Job = scope.launch { _history.value = load() }
 
     fun upsert(conversation: Conversation) {
         update { current ->
@@ -50,10 +51,13 @@ class ChatHistoryRepository(context: Context) {
     }
 
     private fun update(transform: (List<Conversation>) -> List<Conversation>) {
-        _history.value = transform(_history.value).sortedWith(
-            compareByDescending<Conversation> { it.pinned }.thenByDescending { it.updatedAt }
-        )
-        scope.launch { persist(_history.value) }
+        scope.launch {
+            initialLoad.join()
+            _history.value = transform(_history.value).sortedWith(
+                compareByDescending<Conversation> { it.pinned }.thenByDescending { it.updatedAt }
+            )
+            persist(_history.value)
+        }
     }
 
     private fun load(): List<Conversation> = try {

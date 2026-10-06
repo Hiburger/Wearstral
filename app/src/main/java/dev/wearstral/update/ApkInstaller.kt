@@ -4,7 +4,10 @@ import android.content.Context
 import android.content.Intent
 import android.os.Environment
 import androidx.core.content.FileProvider
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.HttpURLConnection
@@ -12,12 +15,28 @@ import java.net.URL
 
 object ApkInstaller {
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private const val UPDATE_APK_NAME = "Wearstral-update.apk"
+
+    /**
+     * Deletes an update APK left over by a previous install. Called on app
+     * start: by then the system installer is done with the file, so the
+     * roughly 40MB can be reclaimed.
+     */
+    fun cleanup(context: Context) {
+        val appContext = context.applicationContext
+        scope.launch {
+            val dir = appContext.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+                ?: appContext.filesDir
+            runCatching { File(dir, UPDATE_APK_NAME).delete() }
+        }
+    }
+
     /**
      * Downloads the APK from [url], streaming it in chunks and calling
      * [onProgress] with a 0f-1f fraction as bytes arrive.
      * On completion fires an install intent via FileProvider.
      */
-
     suspend fun downloadAndInstall(
         context: Context,
         url: String,
@@ -26,7 +45,7 @@ object ApkInstaller {
         runCatching {
             val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
                 ?: context.filesDir
-            val file = File(dir, "Wearstral-update.apk")
+            val file = File(dir, UPDATE_APK_NAME)
 
             val connection = URL(url).openConnection() as HttpURLConnection
             try {

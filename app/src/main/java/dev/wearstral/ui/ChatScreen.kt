@@ -146,7 +146,12 @@ fun ChatScreen(
     val voicePermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) onVoiceTap() else voiceHintRes = R.string.chat_voice_denied
+        if (granted) {
+            inputBeforeVoice = input
+            onVoiceTap()
+        } else {
+            voiceHintRes = R.string.chat_voice_denied
+        }
     }
 
     val requestVoice: () -> Unit = {

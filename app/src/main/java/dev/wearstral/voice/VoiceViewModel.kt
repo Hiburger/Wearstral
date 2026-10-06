@@ -63,14 +63,16 @@ class VoiceViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun onLanguageTap(languageId: String) {
-        if (repository.modelDir(languageId) != null) {
-            viewModelScope.launch { settings.setVoiceLanguage(languageId) }
-            return
-        }
         if (downloadJob?.isActive == true) return
         val language = repository.languageById(languageId) ?: return
         failedId.value = null
         downloadJob = viewModelScope.launch {
+            // the on-disk probe happens off the main thread
+            val modelDir = withContext(Dispatchers.IO) { repository.modelDir(languageId) }
+            if (modelDir != null) {
+                settings.setVoiceLanguage(languageId)
+                return@launch
+            }
             progress.value = languageId to 0
             try {
                 repository.download(language) { percent ->
@@ -78,7 +80,10 @@ class VoiceViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 settings.setVoiceLanguage(languageId)
             } catch (e: Exception) {
-                android.util.Log.d("WearstralVoice", "download failed ${e.javaClass.simpleName}: ${e.message?.take(120)}")
+                android.util.Log.d(
+                    "WearstralVoice",
+                    "download failed ${e.javaClass.simpleName}: ${e.message?.take(120)}"
+                )
                 failedId.value = languageId
             }
             progress.value = null

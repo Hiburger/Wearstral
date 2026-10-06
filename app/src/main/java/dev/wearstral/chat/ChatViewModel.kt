@@ -82,7 +82,10 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
 
         sendJob = viewModelScope.launch {
             try {
-                val reply = client.chat(apiKey, _state.value.messages)
+                val reply = client.chat(
+                    apiKey,
+                    _state.value.messages.takeLast(MAX_CONTEXT_MESSAGES)
+                )
                 android.util.Log.d(TAG, "success len=${reply.length}")
                 _state.update {
                     it.copy(
@@ -95,12 +98,9 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                 throw e
             } catch (e: Exception) {
                 android.util.Log.d(TAG, "failure ${e.javaClass.simpleName}: ${e.message?.take(120)}")
+                // the user's message stays in the list so it is not lost on failure
                 _state.update {
-                    it.copy(
-                        messages = it.messages.dropLast(1),
-                        isSending = false,
-                        error = errorFor(e)
-                    )
+                    it.copy(isSending = false, error = errorFor(e))
                 }
             }
         }
@@ -143,5 +143,8 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
 
     private companion object {
         const val TAG = "WearstralChat"
+
+        /** Only the most recent messages are sent to the API to bound request size. */
+        const val MAX_CONTEXT_MESSAGES = 20
     }
 }
