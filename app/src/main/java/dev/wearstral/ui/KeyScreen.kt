@@ -12,10 +12,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.Composable
@@ -32,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -64,6 +68,14 @@ fun KeyScreen(
     val serverState by server.state.collectAsState()
     DisposableEffect(server) {
         onDispose { server.stop() }
+    }
+    // keep the screen awake while a session runs: Wear OS freezes the app
+    // (and the server) as soon as the screen dims, and the user needs the
+    // screen on anyway to read the URL and PIN
+    val view = LocalView.current
+    DisposableEffect(serverState is KeyEntryServer.State.Running) {
+        view.keepScreenOn = serverState is KeyEntryServer.State.Running
+        onDispose { view.keepScreenOn = false }
     }
 
     AppScaffold(modifier = modifier) {
@@ -104,21 +116,28 @@ fun KeyScreen(
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 6.dp)
                     )
-                    CompactButton(
-                        onClick = { server.stop() },
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 14.dp)
-                            .height(40.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.White,
-                            contentColor = Color.Black
-                        )
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(SurfaceColor)
+                            .border(1.dp, BorderColor, RoundedCornerShape(14.dp))
+                            .clickable { server.stop() }
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = null,
+                            tint = colorResource(R.color.mistral_orange),
+                            modifier = Modifier.size(22.dp)
+                        )
                         Text(
                             text = stringResource(R.string.key_remote_stop),
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
+                            style = TextStyle(fontSize = 14.sp, color = Color.White),
+                            maxLines = 1
                         )
                     }
                 }
@@ -226,21 +245,28 @@ fun KeyScreen(
                     }
                 }
             }
-            CompactButton(
-                onClick = { server.start() },
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 12.dp)
-                    .height(40.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = SurfaceColor,
-                    contentColor = Color.White
-                )
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(SurfaceColor)
+                    .border(1.dp, BorderColor, RoundedCornerShape(14.dp))
+                    .clickable { server.start() }
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                Icon(
+                    imageVector = Icons.Filled.PhoneAndroid,
+                    contentDescription = null,
+                    tint = colorResource(R.color.mistral_orange),
+                    modifier = Modifier.size(22.dp)
+                )
                 Text(
                     text = stringResource(R.string.key_remote_button),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
+                    style = TextStyle(fontSize = 14.sp, color = Color.White),
+                    maxLines = 1
                 )
             }
             if (serverState is KeyEntryServer.State.Failed) {
