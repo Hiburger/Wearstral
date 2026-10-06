@@ -26,6 +26,7 @@ import java.nio.charset.StandardCharsets
  * PINs and stops itself after [SESSION_TIMEOUT_MS] without a successful save.
  * The key is handled in memory only and handed to [onKeySubmitted].
  */
+
 class KeyEntryServer(private val onKeySubmitted: (String) -> Unit) {
 
     sealed class State {
@@ -92,10 +93,12 @@ class KeyEntryServer(private val onKeySubmitted: (String) -> Unit) {
                     _state.value = State.Done
                     return
                 }
+
                 Outcome.BAD_PIN -> {
                     badPins++
                     if (badPins >= MAX_BAD_PINS) return
                 }
+
                 Outcome.IGNORE -> Unit
             }
         }
@@ -128,16 +131,26 @@ class KeyEntryServer(private val onKeySubmitted: (String) -> Unit) {
             val key = param(body, "key")?.trim() ?: ""
             when {
                 submittedPin != pin -> {
-                    respond(client, "403 Forbidden", page("Wrong PIN", "Check the PIN shown on the watch and try again."))
+                    respond(
+                        client,
+                        "403 Forbidden",
+                        page("Wrong PIN", "Check the PIN shown on the watch and try again.")
+                    )
                     Outcome.BAD_PIN
                 }
+
                 key.length < MIN_KEY_LENGTH -> {
-                    respond(client, "400 Bad Request", page("Key too short", "That does not look like a Mistral API key."))
+                    respond(
+                        client,
+                        "400 Bad Request",
+                        page("Key too short", "That does not look like an API key!")
+                    )
                     Outcome.IGNORE
                 }
+
                 else -> {
                     onKeySubmitted(key)
-                    respond(client, "200 OK", page("Key saved", "You can close this page and pick up your watch."))
+                    respond(client, "200 OK", page("Key saved", "You can close this page and go back to your watch :)"))
                     Outcome.SAVED
                 }
             }
@@ -156,12 +169,12 @@ class KeyEntryServer(private val onKeySubmitted: (String) -> Unit) {
         client.getOutputStream().use { out ->
             out.write(
                 (
-                    "HTTP/1.1 $status\r\n" +
-                        "Content-Type: text/html; charset=utf-8\r\n" +
-                        "Content-Length: ${bytes.size}\r\n" +
-                        "Cache-Control: no-store\r\n" +
-                        "Connection: close\r\n\r\n"
-                    ).toByteArray(StandardCharsets.US_ASCII)
+                        "HTTP/1.1 $status\r\n" +
+                                "Content-Type: text/html; charset=utf-8\r\n" +
+                                "Content-Length: ${bytes.size}\r\n" +
+                                "Cache-Control: no-store\r\n" +
+                                "Connection: close\r\n\r\n"
+                        ).toByteArray(StandardCharsets.US_ASCII)
             )
             out.write(bytes)
             out.flush()
@@ -198,11 +211,11 @@ class KeyEntryServer(private val onKeySubmitted: (String) -> Unit) {
 
     private val FORM_PAGE = """
         <!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
-        <title>Wearstral key</title>$STYLE</head>
-        <body><h1>Wearstral — API key</h1>
+        <title>Wearstral Set Up</title>$STYLE</head>
+        <body><h1>Wearstral API key</h1>
         <form method="post" action="/">
         <input name="pin" inputmode="numeric" placeholder="6-digit PIN shown on the watch" required>
-        <input name="key" placeholder="Mistral API key" required>
+        <input name="key" placeholder="Your API key" required>
         <button type="submit">Save on the watch</button></form></body></html>
     """.trimIndent()
 
