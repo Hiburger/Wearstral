@@ -18,6 +18,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -99,6 +100,8 @@ import androidx.core.content.ContextCompat
 import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.Text
+import androidx.wear.compose.foundation.rotary.RotaryScrollableDefaults
+import androidx.wear.compose.foundation.rotary.rotaryScrollable
 import dev.wearstral.R
 import dev.wearstral.chat.ChatError
 import dev.wearstral.chat.ChatState
@@ -212,6 +215,15 @@ fun ChatScreen(
         0f
     }
 
+    // route crown focus: the side panel takes it while open, the chat list
+    // otherwise; re-grab after a send so the crown works again after typing
+    val chatFocusRequester = remember { FocusRequester() }
+    val panelFocusRequester = remember { FocusRequester() }
+    val panelOpen = progress > 0.5f
+    LaunchedEffect(panelOpen, state.isSending, state.messages.size) {
+        (if (panelOpen) panelFocusRequester else chatFocusRequester).requestFocus()
+    }
+
     fun closePanel() {
         scope.launch { panelOffset.animateTo(0f) }
     }
@@ -258,7 +270,16 @@ fun ChatScreen(
                     state = listState,
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(top = 44.dp, bottom = 34.dp, start = 24.dp, end = 24.dp),
+                        .padding(top = 44.dp, bottom = 34.dp, start = 24.dp, end = 24.dp)
+                        .rotaryScrollable(
+                            behavior = RotaryScrollableDefaults.behavior(scrollableState = listState),
+                            focusRequester = chatFocusRequester,
+                            // the chat list is reversed (newest at the bottom),
+                            // so flip the crown direction to match every other
+                            // scrollable in the app
+                            reverseDirection = true
+                        )
+                        .focusable(),
                     reverseLayout = true,
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.Bottom)
@@ -491,6 +512,11 @@ fun ChatScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(panelScrollState)
+                    .rotaryScrollable(
+                        behavior = RotaryScrollableDefaults.behavior(scrollableState = panelScrollState),
+                        focusRequester = panelFocusRequester
+                    )
+                    .focusable()
                     .padding(top = 44.dp, start = 24.dp, end = 24.dp, bottom = 44.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)

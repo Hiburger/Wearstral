@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -38,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -71,6 +73,14 @@ fun SettingsScreen(
     var downloading by remember { mutableStateOf(false) }
     var downloadProgress by remember { mutableStateOf(0f) }
     var downloadFailed by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
+    // keep the screen awake while an update downloads so Wear OS does not
+    // freeze the app mid-transfer
+    val view = LocalView.current
+    DisposableEffect(downloading) {
+        view.keepScreenOn = downloading
+        onDispose { view.keepScreenOn = false }
+    }
     LaunchedEffect(confirmClear) {
         if (confirmClear) {
             delay(4_000)
@@ -87,7 +97,8 @@ fun SettingsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
+                .rotaryScroll(scrollState)
                 .padding(top = 44.dp, start = 24.dp, end = 24.dp, bottom = 44.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)

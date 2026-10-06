@@ -58,12 +58,14 @@ fun HistoryScreen(
 ) {
     val haptics = LocalHapticFeedback.current
     var selected by remember { mutableStateOf<Conversation?>(null) }
+    val scrollState = rememberScrollState()
     AppScaffold(timeText = { TimeText() }, modifier = modifier) {
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
+                    .rotaryScroll(scrollState)
                     .padding(top = 44.dp, start = 24.dp, end = 24.dp, bottom = 44.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(10.dp)
