@@ -17,7 +17,7 @@
     <string name="chat_settings">Settings</string>
     <string name="settings_title">Settings</string>
     <string name="settings_api_key">API Key</string>
-    <string name="settings_nostalgic">Nostalgic mode</string>
+    <string name="settings_nostalgic">Nostalgic</string>
     <string name="settings_voice">Voice input</string>
     <string name="chat_panel_history_hint">Recent chats will appear here</string>
     <string name="history_title">History</string>
@@ -37,6 +37,13 @@
     <string name="settings_clear_history">Delete chat history</string>
     <string name="settings_cleared">All chats deleted !</string>
     <string name="settings_clear_confirm">Confirm delete</string>
+    <string name="settings_check_updates">Check for updates</string>
+    <string name="update_checking">Checking…</string>
+    <string name="update_up_to_date">Up to date :)</string>
+    <string name="update_available">v%1$s available !</string>
+    <string name="update_check_failed">Check failed</string>
+    <string name="update_downloading">Downloading %1$d%%</string>
+    <string name="update_download_failed">Download failed :(</string>
     <string name="history_delete_hint">Long-press a chat for actions</string>
     <string name="history_open_all">Full history</string>
     <string name="voice_title">Voice input</string>

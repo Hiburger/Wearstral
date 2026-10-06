@@ -21,30 +21,37 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TimeText
 import dev.wearstral.R
+import dev.wearstral.update.ApkInstaller
+import dev.wearstral.update.UpdateChecker
 
 @Composable
 fun SettingsScreen(
@@ -58,6 +65,12 @@ fun SettingsScreen(
 ) {
     var confirmClear by remember { mutableStateOf(false) }
     var clearedFlash by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val updateState by UpdateChecker.state.collectAsState()
+    var downloading by remember { mutableStateOf(false) }
+    var downloadProgress by remember { mutableStateOf(0f) }
+    var downloadFailed by remember { mutableStateOf(false) }
     LaunchedEffect(confirmClear) {
         if (confirmClear) {
             delay(4_000)
@@ -147,7 +160,8 @@ fun SettingsScreen(
                 Text(
                     text = stringResource(R.string.settings_nostalgic),
                     style = TextStyle(fontSize = 15.sp, color = Color.White),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1
                 )
                 MiniToggle(checked = nostalgic)
             }
@@ -171,6 +185,68 @@ fun SettingsScreen(
                 Text(
                     text = stringResource(R.string.settings_info),
                     style = TextStyle(fontSize = 15.sp, color = Color.White)
+                )
+            }
+            val apkUrl =
+                (updateState as? UpdateChecker.UpdateState.UpdateAvailable)?.release?.apkUrl
+            val busy = downloading || updateState is UpdateChecker.UpdateState.Checking
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(SurfaceColor)
+                    .border(1.dp, BorderColor, RoundedCornerShape(14.dp))
+                    .clickable {
+                        when {
+                            busy -> Unit
+                            apkUrl != null -> {
+                                downloading = true
+                                downloadFailed = false
+                                downloadProgress = 0f
+                                scope.launch {
+                                    ApkInstaller.downloadAndInstall(
+                                        context = context,
+                                        url = apkUrl,
+                                        onProgress = { p -> downloadProgress = p }
+                                    ).onFailure { downloadFailed = true }
+                                    downloading = false
+                                }
+                            }
+                            else -> UpdateChecker.checkNow(context)
+                        }
+                    }
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.CloudDownload,
+                    contentDescription = null,
+                    tint = colorResource(R.color.mistral_orange),
+                    modifier = Modifier.size(22.dp)
+                )
+                Text(
+                    text = when {
+                        downloading -> stringResource(
+                            R.string.update_downloading,
+                            (downloadProgress * 100).toInt()
+                        )
+                        downloadFailed -> stringResource(R.string.update_download_failed)
+                        else -> when (val s = updateState) {
+                            is UpdateChecker.UpdateState.Idle ->
+                                stringResource(R.string.settings_check_updates)
+                            is UpdateChecker.UpdateState.Checking ->
+                                stringResource(R.string.update_checking)
+                            is UpdateChecker.UpdateState.UpToDate ->
+                                stringResource(R.string.update_up_to_date)
+                            is UpdateChecker.UpdateState.UpdateAvailable ->
+                                stringResource(R.string.update_available, s.release.tagName)
+                            is UpdateChecker.UpdateState.Error ->
+                                stringResource(R.string.update_check_failed)
+                        }
+                    },
+                    style = TextStyle(fontSize = 14.sp, color = Color.White),
+                    maxLines = 1
                 )
             }
             Row(
