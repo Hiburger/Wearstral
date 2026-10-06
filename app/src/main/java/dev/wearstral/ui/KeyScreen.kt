@@ -85,8 +85,8 @@ fun KeyScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.Center,
+                .padding(top = 44.dp, start = 24.dp, end = 24.dp, bottom = 44.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -95,8 +95,7 @@ fun KeyScreen(
                 } else {
                     stringResource(R.string.key_title_saved, currentKey.takeLast(4))
                 },
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(bottom = 8.dp)
+                textAlign = TextAlign.Center
             )
             when (val s = serverState) {
                 is KeyEntryServer.State.Running -> {
@@ -116,13 +115,11 @@ fun KeyScreen(
                     Text(
                         text = stringResource(R.string.key_remote_pin, s.pin),
                         style = TextStyle(fontSize = 22.sp, color = Color.White),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 6.dp)
+                        textAlign = TextAlign.Center
                     )
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 14.dp)
                             .clip(RoundedCornerShape(14.dp))
                             .background(SurfaceColor)
                             .border(1.dp, BorderColor, RoundedCornerShape(14.dp))
@@ -151,8 +148,7 @@ fun KeyScreen(
                             fontSize = 14.sp,
                             color = colorResource(R.color.mistral_orange)
                         ),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 12.dp)
+                        textAlign = TextAlign.Center
                     )
                 }
                 else -> {
@@ -202,9 +198,7 @@ fun KeyScreen(
             }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp)
+                modifier = Modifier.fillMaxWidth()
             ) {
                 CompactButton(
                     onClick = {
@@ -251,7 +245,6 @@ fun KeyScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 12.dp)
                     .clip(RoundedCornerShape(14.dp))
                     .background(SurfaceColor)
                     .border(1.dp, BorderColor, RoundedCornerShape(14.dp))
@@ -268,8 +261,7 @@ fun KeyScreen(
                 )
                 Text(
                     text = stringResource(R.string.key_remote_button),
-                    style = TextStyle(fontSize = 14.sp, color = Color.White),
-                    maxLines = 1
+                    style = TextStyle(fontSize = 14.sp, color = Color.White)
                 )
             }
             if (serverState is KeyEntryServer.State.Failed) {
@@ -284,8 +276,7 @@ fun KeyScreen(
                         }
                     ),
                     style = TextStyle(fontSize = 11.sp, color = Color(0xFFFF8A65)),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 6.dp)
+                    textAlign = TextAlign.Center
                 )
             }
             }
