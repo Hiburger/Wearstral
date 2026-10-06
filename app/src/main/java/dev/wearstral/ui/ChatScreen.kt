@@ -270,7 +270,7 @@ fun ChatScreen(
                     state = listState,
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(top = 44.dp, bottom = 34.dp, start = 24.dp, end = 24.dp)
+                        .padding(top = 44.dp, bottom = 48.dp, start = 24.dp, end = 24.dp)
                         .rotaryScrollable(
                             behavior = RotaryScrollableDefaults.behavior(scrollableState = listState),
                             focusRequester = chatFocusRequester,
