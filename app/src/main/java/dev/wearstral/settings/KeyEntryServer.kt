@@ -15,6 +15,7 @@ import java.net.ServerSocket
 import java.net.Socket
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * One-shot web server that lets the user enter the API key on another device
@@ -47,15 +48,20 @@ class KeyEntryServer(private val onKeySubmitted: (String) -> Unit) {
     @Volatile
     private var serverSocket: ServerSocket? = null
 
+    // guards the whole session (not just the socket, which is only assigned
+    // once the launch coroutine runs) so a fast double-tap cannot start two
+    // servers that would close each other's socket on cleanup
+    private val sessionActive = AtomicBoolean(false)
+
     fun start() {
-        if (serverSocket != null) return
+        if (!sessionActive.compareAndSet(false, true)) return
         scope.launch {
-            val address = wifiAddress()
-            if (address == null) {
-                _state.value = State.Failed(State.Reason.NoWifi)
-                return@launch
-            }
             try {
+                val address = wifiAddress()
+                if (address == null) {
+                    _state.value = State.Failed(State.Reason.NoWifi)
+                    return@launch
+                }
                 val socket = ServerSocket(0, BACKLOG, address)
                 serverSocket = socket
                 socket.soTimeout = SESSION_TIMEOUT_MS.toInt()
@@ -71,6 +77,7 @@ class KeyEntryServer(private val onKeySubmitted: (String) -> Unit) {
                 runCatching { serverSocket?.close() }
                 serverSocket = null
                 if (_state.value is State.Running) _state.value = State.Idle
+                sessionActive.set(false)
             }
         }
     }
