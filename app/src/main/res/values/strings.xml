@@ -7,6 +7,13 @@
     <string name="key_hide">Hide</string>
     <string name="key_save">Save</string>
     <string name="key_clear">Clear</string>
+    <string name="key_remote_button">Enter key on another device</string>
+    <string name="key_remote_hint">On a device on the same Wi-Fi, open:</string>
+    <string name="key_remote_pin">PIN %1$s</string>
+    <string name="key_remote_stop">Stop</string>
+    <string name="key_remote_saved">Key saved !</string>
+    <string name="key_remote_nowifi">Connect the watch to Wi-Fi first</string>
+    <string name="key_remote_error">Couldn\'t start, try again</string>
     <string name="chat_hint">I\'m all hears :)</string>
     <string name="chat_input_hint">Write here…</string>
     <string name="chat_role_you">You</string>

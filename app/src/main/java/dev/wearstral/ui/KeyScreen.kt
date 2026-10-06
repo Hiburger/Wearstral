@@ -19,9 +19,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -45,6 +48,7 @@ import androidx.wear.compose.material3.CompactButton
 import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.Text
 import dev.wearstral.R
+import dev.wearstral.settings.KeyEntryServer
 
 @Composable
 fun KeyScreen(
@@ -55,6 +59,12 @@ fun KeyScreen(
 ) {
     var input by rememberSaveable { mutableStateOf("") }
     var revealed by rememberSaveable { mutableStateOf(false) }
+    val currentOnSave by rememberUpdatedState(onSave)
+    val server = remember { KeyEntryServer { currentOnSave(it) } }
+    val serverState by server.state.collectAsState()
+    DisposableEffect(server) {
+        onDispose { server.stop() }
+    }
 
     AppScaffold(modifier = modifier) {
         Column(
@@ -73,7 +83,58 @@ fun KeyScreen(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
-            Box(
+            when (val s = serverState) {
+                is KeyEntryServer.State.Running -> {
+                    Text(
+                        text = stringResource(R.string.key_remote_hint),
+                        style = TextStyle(fontSize = 12.sp, color = MutedColor),
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = s.url,
+                        style = TextStyle(
+                            fontSize = 13.sp,
+                            color = colorResource(R.color.mistral_orange)
+                        ),
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = stringResource(R.string.key_remote_pin, s.pin),
+                        style = TextStyle(fontSize = 22.sp, color = Color.White),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 6.dp)
+                    )
+                    CompactButton(
+                        onClick = { server.stop() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 14.dp)
+                            .height(40.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = Color.Black
+                        )
+                    ) {
+                        Text(
+                            text = stringResource(R.string.key_remote_stop),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+                KeyEntryServer.State.Done -> {
+                    Text(
+                        text = stringResource(R.string.key_remote_saved),
+                        style = TextStyle(
+                            fontSize = 14.sp,
+                            color = colorResource(R.color.mistral_orange)
+                        ),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 12.dp)
+                    )
+                }
+                else -> {
+                    Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
@@ -164,6 +225,41 @@ fun KeyScreen(
                         )
                     }
                 }
+            }
+            CompactButton(
+                onClick = { server.start() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp)
+                    .height(40.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = SurfaceColor,
+                    contentColor = Color.White
+                )
+            ) {
+                Text(
+                    text = stringResource(R.string.key_remote_button),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            if (serverState is KeyEntryServer.State.Failed) {
+                Text(
+                    text = stringResource(
+                        if ((serverState as KeyEntryServer.State.Failed).reason ==
+                            KeyEntryServer.State.Reason.NoWifi
+                        ) {
+                            R.string.key_remote_nowifi
+                        } else {
+                            R.string.key_remote_error
+                        }
+                    ),
+                    style = TextStyle(fontSize = 11.sp, color = Color(0xFFFF8A65)),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 6.dp)
+                )
+            }
+            }
             }
         }
     }
