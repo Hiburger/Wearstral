@@ -17,9 +17,9 @@ Later, I will try to add support for people that don't want to use their API or 
 
 | Home | Chat | Side panel |
 |:---:|:---:|:---:|
-| ![Home screen with a waving hand and the message input](screenshots/home-screen.png) | ![Conversation with Le Chat](screenshots/exemple-chat.png) | ![Side panel with new chat, settings and recent chats](screenshots/side-panel.png) |
+| <img src="screenshots/home-screen.png" width="240" alt="Home screen with a waving hand and the message input"> | <img src="screenshots/exemple-chat.png" width="240" alt="Conversation with Le Chat"> | <img src="screenshots/side-panel.png" width="240" alt="Side panel with new chat, settings and recent chats"> |
 | **Settings** | **Voice input** | **Information** |
-| ![Settings screen](screenshots/settings.png) | ![Voice input setup with downloadable transcription languages](screenshots/transcription-lang.png) | ![Information screen with app version and model](screenshots/info-screen.png) |
+| <img src="screenshots/settings.png" width="240" alt="Settings screen"> | <img src="screenshots/transcription-lang.png" width="240" alt="Voice input setup with downloadable transcription languages"> | <img src="screenshots/info-screen.png" width="240" alt="Information screen with app version and model"> |
 
 ---
 
