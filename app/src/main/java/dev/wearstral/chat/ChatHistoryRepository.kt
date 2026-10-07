@@ -19,15 +19,16 @@ import java.io.File
  * single source of truth; writes are fire-and-forget (a watch app can lose at
  * most the very latest exchange on a crash ...which is acceptable no?)
  */
+
 class ChatHistoryRepository(context: Context) {
     private val file = File(context.filesDir, FILE_NAME)
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val backupFile = File(file.parentFile, "$FILE_NAME.bak")
+    private val scope =
+        CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1))
 
     private val _history = MutableStateFlow<List<Conversation>>(emptyList())
     val history: StateFlow<List<Conversation>> = _history.asStateFlow()
 
-    // history is loaded off the main thread; every mutation waits for the load
-    // to finish first so nothing can be persisted before the disk state is read
     private val initialLoad: Job = scope.launch { _history.value = load() }
 
     fun upsert(conversation: Conversation) {
@@ -60,9 +61,17 @@ class ChatHistoryRepository(context: Context) {
         }
     }
 
-    private fun load(): List<Conversation> = try {
-        if (file.exists()) {
-            val array = JSONObject(file.readText()).getJSONArray(KEY_CONVERSATIONS)
+    private fun load(): List<Conversation> {
+        loadFrom(file)?.let { return it }
+        val backup = loadFrom(backupFile) ?: return emptyList()
+        Log.d(TAG, "history file unreadable; recovered ${backup.size} conversations from backup")
+        return backup
+    }
+
+    // null ONLY when the file exists but cannot be parsed
+    private fun loadFrom(source: File): List<Conversation>? = try {
+        if (source.exists()) {
+            val array = JSONObject(source.readText()).getJSONArray(KEY_CONVERSATIONS)
             (0 until array.length()).mapNotNull { i ->
                 val obj = array.getJSONObject(i)
                 val messages = obj.getJSONArray(KEY_MESSAGES).let { raw ->
@@ -92,7 +101,7 @@ class ChatHistoryRepository(context: Context) {
         }
     } catch (e: Exception) {
         Log.d(TAG, "load failed ${e.javaClass.simpleName}: ${e.message?.take(120)}")
-        emptyList()
+        null
     }
 
     private fun persist(conversations: List<Conversation>) {
@@ -118,6 +127,9 @@ class ChatHistoryRepository(context: Context) {
             val json = JSONObject().put(KEY_CONVERSATIONS, array).toString()
             val tmp = File(file.parentFile, "$FILE_NAME.tmp")
             tmp.writeText(json)
+            if (file.exists()) {
+                runCatching { file.copyTo(backupFile, overwrite = true) }
+            }
             if (!tmp.renameTo(file)) {
                 file.writeText(json)
                 tmp.delete()
