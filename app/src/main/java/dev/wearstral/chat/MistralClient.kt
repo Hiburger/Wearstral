@@ -38,7 +38,8 @@ class MistralClient(
                     setRequestProperty("Accept", "application/json")
                     doOutput = true
                     connectTimeout = 10_000
-                    readTimeout = 30_000
+                    // in some cases long generations can take well over 30s
+                    readTimeout = 60_000
                 }
 
             try {

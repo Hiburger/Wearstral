@@ -12,12 +12,9 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ExperimentalFoundationApi
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -118,7 +115,6 @@ import kotlin.math.sin
 private const val MAX_BLUR = 16f
 private const val PANEL_MAX_ROWS = 4
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChatScreen(
     state: ChatState,

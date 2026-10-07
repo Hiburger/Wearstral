@@ -21,6 +21,7 @@ data class VoiceLanguage(
  * and the downloaded-set scan. The active language choice itself is persisted
  * by dev.wearstral.settings.SettingsRepository
  */
+
 class VoiceModelRepository(private val context: Context) {
 
     val languages: List<VoiceLanguage> = listOf(
@@ -63,6 +64,9 @@ class VoiceModelRepository(private val context: Context) {
                 targetDir.deleteRecursively()
                 val connection = URL(language.url).openConnection() as HttpURLConnection
                 connection.instanceFollowRedirects = true
+                // without these a dead connection hangs forever with the row stuck at 0%
+                connection.connectTimeout = 10_000
+                connection.readTimeout = 30_000
                 connection.connect()
                 if (connection.responseCode !in 200..299) {
                     throw IOException("HTTP ${connection.responseCode}")
