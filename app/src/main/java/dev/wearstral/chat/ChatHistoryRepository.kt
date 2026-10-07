@@ -30,6 +30,7 @@ class ChatHistoryRepository(context: Context) {
     val history: StateFlow<List<Conversation>> = _history.asStateFlow()
 
     private val initialLoad: Job = scope.launch { _history.value = load() }
+    private var mainFileNeedsRepair = false
 
     fun upsert(conversation: Conversation) {
         update { current ->
@@ -65,6 +66,7 @@ class ChatHistoryRepository(context: Context) {
         loadFrom(file)?.let { return it }
         val backup = loadFrom(backupFile) ?: return emptyList()
         Log.d(TAG, "history file unreadable; recovered ${backup.size} conversations from backup")
+        mainFileNeedsRepair = true
         return backup
     }
 
@@ -127,9 +129,10 @@ class ChatHistoryRepository(context: Context) {
             val json = JSONObject().put(KEY_CONVERSATIONS, array).toString()
             val tmp = File(file.parentFile, "$FILE_NAME.tmp")
             tmp.writeText(json)
-            if (file.exists()) {
+            if (file.exists() && !mainFileNeedsRepair) {
                 runCatching { file.copyTo(backupFile, overwrite = true) }
             }
+            mainFileNeedsRepair = false
             if (!tmp.renameTo(file)) {
                 file.writeText(json)
                 tmp.delete()
