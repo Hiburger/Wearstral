@@ -1,6 +1,7 @@
 package dev.wearstral.voice
 
 import android.util.Log
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -95,8 +96,12 @@ class VoiceInputController(
                     delay(MAX_DURATION_MS)
                     stop()
                 }
-            } catch (e: Exception) {
-                Log.d(TAG, "voice start failed ${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (t: Throwable) {
+                // Throwable, not Exception: a native lib that cannot load
+                //is an error and must degrade to a hint instead of killing the process
+                Log.d(TAG, "voice start failed ${t.javaClass.simpleName}: ${t.message?.take(120)}")
                 runCatching { loadedRecognizer?.close() }
                 runCatching { loadedModel?.close() }
                 _state.value = VoiceState.Failed(VoiceState.Reason.MicError)
