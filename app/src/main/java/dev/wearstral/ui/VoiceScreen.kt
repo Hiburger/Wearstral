@@ -37,7 +37,7 @@ fun VoiceScreen(
     onLanguageTap: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // keep the screen awake while during downloads
+    // keep the screen awake during downloads
     val view = LocalView.current
     val downloading = rows.any { it.progress != null }
     DisposableEffect(downloading) {
