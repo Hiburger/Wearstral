@@ -14,10 +14,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -35,6 +37,13 @@ fun VoiceScreen(
     onLanguageTap: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // keep the screen awake while during downloads
+    val view = LocalView.current
+    val downloading = rows.any { it.progress != null }
+    DisposableEffect(downloading) {
+        view.keepScreenOn = downloading
+        onDispose { view.keepScreenOn = false }
+    }
     AppScaffold(timeText = { TimeText() }, modifier = modifier) {
         val scrollState = rememberScrollState()
         Column(
