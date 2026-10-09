@@ -90,4 +90,15 @@ class VoiceViewModel(app: Application) : AndroidViewModel(app) {
             refresh.value++
         }
     }
+
+    fun onDeleteLanguageTap(languageId: String) {
+        if (downloadJob?.isActive == true) return
+        if (repository.languageById(languageId) == null) return
+        viewModelScope.launch {
+            val wasActive = activeLanguage.value == languageId
+            withContext(Dispatchers.IO) { repository.delete(languageId) }
+            if (wasActive) settings.clearVoiceLanguage()
+            refresh.value++
+        }
+    }
 }

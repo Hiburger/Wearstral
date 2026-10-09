@@ -38,9 +38,13 @@ class VoiceModelRepository(private val context: Context) {
 
     fun languageById(id: String): VoiceLanguage? = languages.firstOrNull { it.id == id }
 
+    // Removes an unpacked model directory
+    fun delete(languageId: String) {
+        File(voiceDir(), languageId).deleteRecursively()
+    }
+
     private fun voiceDir() = File(context.filesDir, "voice").apply { mkdirs() }
 
-    // Model directory for an unpacked language, or null if it is not present
     fun modelDir(languageId: String): File? =
         File(voiceDir(), languageId).takeIf { File(it, "conf/model.conf").exists() }
 
@@ -56,6 +60,7 @@ class VoiceModelRepository(private val context: Context) {
      * progress 0..100 through [onProgress]. Throws on any failure; partial
      * files are cleaned up so a retry starts fresh
      */
+
     suspend fun download(language: VoiceLanguage, onProgress: (Int) -> Unit) =
         withContext(Dispatchers.IO) {
             val tmpZip = File(voiceDir(), "${language.id}.zip.tmp")
