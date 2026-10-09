@@ -22,7 +22,7 @@ sealed class VoiceState {
     data object Idle : VoiceState()
     data object Preparing : VoiceState()
     data class Listening(val partial: String) : VoiceState()
-    data class Failed(val reason: Reason) : VoiceState()
+    data class Failed(val reason: Reason, val attempt: Int = 0) : VoiceState()
 
     enum class Reason { NoModel, MicError }
 }
@@ -56,6 +56,12 @@ class VoiceInputController(
     private var sessionModel: Model? = null
     private var timeoutJob: Job? = null
 
+    private fun fail(reason: VoiceState.Reason) {
+        _state.value = VoiceState.Failed(reason, attempt = ++failureAttempt)
+    }
+
+    private var failureAttempt = 0
+
     fun tap() {
         Log.d(TAG, "tap() state=${_state.value}")
         when (_state.value) {
@@ -66,9 +72,9 @@ class VoiceInputController(
 
     private fun start() {
         val languageId = activeLanguageId()
-            ?: run { _state.value = VoiceState.Failed(VoiceState.Reason.NoModel); return }
+            ?: run { fail(VoiceState.Reason.NoModel); return }
         val modelDir = repository.modelDir(languageId)
-            ?: run { _state.value = VoiceState.Failed(VoiceState.Reason.NoModel); return }
+            ?: run { fail(VoiceState.Reason.NoModel); return }
 
         Log.d(TAG, "start() lang=$languageId dir=${modelDir.name}")
         _state.value = VoiceState.Preparing
@@ -78,7 +84,9 @@ class VoiceInputController(
             try {
                 loadedModel = withContext(Dispatchers.Default) { Model(modelDir.absolutePath) }
                 loadedRecognizer = withContext(Dispatchers.Default) {
-                    Recognizer(loadedModel, SAMPLE_RATE)
+                    Recognizer(loadedModel, SAMPLE_RATE).apply {
+                        setEndpointerMode(Recognizer.EndpointerMode.DEFAULT)
+                    }
                 }
                 if (_state.value != VoiceState.Preparing) {
                     runCatching { loadedRecognizer?.close() }
@@ -101,10 +109,11 @@ class VoiceInputController(
             } catch (t: Throwable) {
                 // Throwable, not Exception: a native lib that cannot load
                 //is an error and must degrade to a hint instead of killing the process
-                Log.d(TAG, "voice start failed ${t.javaClass.simpleName}: ${t.message?.take(120)}")
+                // Log.w survives the release Log.d stripping
+                Log.w(TAG, "voice start failed ${t.javaClass.simpleName}: ${t.message?.take(120)}")
                 runCatching { loadedRecognizer?.close() }
                 runCatching { loadedModel?.close() }
-                _state.value = VoiceState.Failed(VoiceState.Reason.MicError)
+                fail(VoiceState.Reason.MicError)
             }
         }
     }
@@ -150,7 +159,7 @@ class VoiceInputController(
             sessionModel = null
             timeoutJob?.cancel()
             timeoutJob = null
-            _state.value = VoiceState.Failed(VoiceState.Reason.MicError)
+            fail(VoiceState.Reason.MicError)
             shutdown(service, recognizer, model)
         }
 
@@ -163,9 +172,7 @@ class VoiceInputController(
             .orEmpty()
         Log.d(TAG, "final: '$text'")
         _finalText.value = text
-        if (_state.value !is VoiceState.Idle) {
-            _state.value = VoiceState.Idle
-        }
+        stop()
     }
 
     // Frees Vosk natives only after the decoder thread has wound down
