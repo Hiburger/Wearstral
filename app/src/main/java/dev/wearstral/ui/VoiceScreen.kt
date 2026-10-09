@@ -167,6 +167,12 @@ fun VoiceScreen(
                         .clip(RoundedCornerShape(14.dp))
                         .background(SurfaceColor)
                         .border(1.dp, BorderColor, RoundedCornerShape(14.dp))
+                        // swallow taps on the card itself so they do not
+                        // fall through to the dismiss overlay behind it
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { }
                         .padding(6.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {

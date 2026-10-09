@@ -51,10 +51,12 @@ class VoiceInputController(
     private val _finalText = MutableStateFlow<String?>(null)
     val finalText: StateFlow<String?> = _finalText.asStateFlow()
 
-    private var activeService: SpeechService? = null
-    private var sessionRecognizer: Recognizer? = null
-    private var sessionModel: Model? = null
-    private var timeoutJob: Job? = null
+    // touched from both the main thread (tap/stop) and Vosk's decoder
+    // thread (onResult/onTimeout callbacks), so visibility is mandatory
+    @Volatile private var activeService: SpeechService? = null
+    @Volatile private var sessionRecognizer: Recognizer? = null
+    @Volatile private var sessionModel: Model? = null
+    @Volatile private var timeoutJob: Job? = null
 
     private fun fail(reason: VoiceState.Reason) {
         _state.value = VoiceState.Failed(reason, attempt = ++failureAttempt)

@@ -92,12 +92,24 @@ class VoiceViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun onDeleteLanguageTap(languageId: String) {
+        // same guard as downloads: a delete is disk I/O that must not
+        // interleave with a language tap or another delete
         if (downloadJob?.isActive == true) return
         if (repository.languageById(languageId) == null) return
-        viewModelScope.launch {
+        downloadJob = viewModelScope.launch {
             val wasActive = activeLanguage.value == languageId
-            withContext(Dispatchers.IO) { repository.delete(languageId) }
-            if (wasActive) settings.clearVoiceLanguage()
+            val deleted = withContext(Dispatchers.IO) { repository.delete(languageId) }
+            if (deleted) {
+                if (wasActive) settings.clearVoiceLanguage()
+            } else {
+                // the model is still on disk: keep the setting consistent
+                // with reality and flag the row so the user knows
+                android.util.Log.w(
+                    "WearstralVoice",
+                    "model delete failed for $languageId; keeping it installed"
+                )
+                failedId.value = languageId
+            }
             refresh.value++
         }
     }
