@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,9 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PushPin
@@ -44,6 +43,10 @@ import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TimeText
+import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
+import androidx.wear.compose.foundation.lazy.ScalingLazyColumnDefaults
+import androidx.wear.compose.foundation.lazy.items
+import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import dev.wearstral.R
 import dev.wearstral.chat.Conversation
 
@@ -58,30 +61,36 @@ fun HistoryScreen(
 ) {
     val haptics = LocalHapticFeedback.current
     var selected by remember { mutableStateOf<Conversation?>(null) }
-    val scrollState = rememberScrollState()
+    val listState = rememberScalingLazyListState()
     AppScaffold(timeText = { TimeText() }, modifier = modifier) {
         Box(modifier = Modifier.fillMaxSize()) {
-            Column(
+            ScalingLazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .rotaryScroll(scrollState)
-                    .padding(top = 44.dp, start = 24.dp, end = 24.dp, bottom = 44.dp),
+                    .rotaryScroll(listState),
+                contentPadding = PaddingValues(top = 32.dp, start = 24.dp, end = 24.dp, bottom = 44.dp),
+                autoCentering = null,
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                scalingParams = ScalingLazyColumnDefaults.scalingParams(edgeAlpha = 1f)
             ) {
-                Text(
-                    text = stringResource(R.string.history_title),
-                    style = TextStyle(fontSize = 15.sp, color = MutedColor)
-                )
-                if (history.isEmpty()) {
+                item {
                     Text(
-                        text = stringResource(R.string.history_empty),
-                        style = TextStyle(fontSize = 12.sp, color = HintColor),
-                        modifier = Modifier.padding(top = 24.dp)
+                        text = stringResource(R.string.history_title),
+                        style = TextStyle(fontSize = 15.sp, color = MutedColor)
                     )
+                }
+                if (history.isEmpty()) {
+                    item {
+                        Text(
+                            text = stringResource(R.string.history_empty),
+                            style = TextStyle(fontSize = 12.sp, color = HintColor),
+                            modifier = Modifier.padding(top = 24.dp)
+                        )
+                    }
                 } else {
-                    history.forEach { conversation ->
+                    items(history) { conversation ->
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -121,11 +130,13 @@ fun HistoryScreen(
                             }
                         }
                     }
-                    Text(
-                        text = stringResource(R.string.history_delete_hint),
-                        style = TextStyle(fontSize = 11.sp, color = HintColor),
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
+                    item {
+                        Text(
+                            text = stringResource(R.string.history_delete_hint),
+                            style = TextStyle(fontSize = 11.sp, color = HintColor),
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
                 }
             }
 

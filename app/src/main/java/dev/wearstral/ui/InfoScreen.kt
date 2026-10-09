@@ -4,14 +4,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.Memory
@@ -32,6 +31,9 @@ import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TimeText
+import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
+import androidx.wear.compose.foundation.lazy.ScalingLazyColumnDefaults
+import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import dev.wearstral.R
 
 @Composable
@@ -43,42 +45,54 @@ fun InfoScreen(
     modifier: Modifier = Modifier
 ) {
     AppScaffold(timeText = { TimeText() }, modifier = modifier) {
-        val scrollState = rememberScrollState()
-        Column(
+        val listState = rememberScalingLazyListState()
+        ScalingLazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState)
-                .rotaryScroll(scrollState)
-                .padding(top = 44.dp, start = 24.dp, end = 24.dp, bottom = 44.dp),
+                .rotaryScroll(listState),
+            contentPadding = PaddingValues(top = 32.dp, start = 24.dp, end = 24.dp, bottom = 44.dp),
+            autoCentering = null,
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            scalingParams = ScalingLazyColumnDefaults.scalingParams(edgeAlpha = 1f)
         ) {
-            Text(
-                text = stringResource(R.string.info_title),
-                style = TextStyle(fontSize = 15.sp, color = MutedColor)
-            )
-            InfoCard(
-                icon = Icons.Filled.ChatBubble,
-                title = "Wearstral",
-                value = stringResource(R.string.info_version, version)
-            )
-            InfoCard(
-                icon = Icons.Filled.Memory,
-                title = stringResource(R.string.info_model),
-                value = modelName
-            )
-            InfoCard(
-                icon = Icons.Filled.Mic,
-                title = stringResource(R.string.info_voice),
-                value = voiceModel ?: stringResource(R.string.info_voice_none)
-            )
-            InfoCard(
-                icon = Icons.Filled.Favorite,
-                title = stringResource(R.string.info_nostalgic),
-                value = stringResource(
-                    if (nostalgic) R.string.info_on else R.string.info_off
+            item {
+                Text(
+                    text = stringResource(R.string.info_title),
+                    style = TextStyle(fontSize = 15.sp, color = MutedColor)
                 )
-            )
+            }
+            item {
+                InfoCard(
+                    icon = Icons.Filled.ChatBubble,
+                    title = "Wearstral",
+                    value = stringResource(R.string.info_version, version)
+                )
+            }
+            item {
+                InfoCard(
+                    icon = Icons.Filled.Memory,
+                    title = stringResource(R.string.info_model),
+                    value = modelName
+                )
+            }
+            item {
+                InfoCard(
+                    icon = Icons.Filled.Mic,
+                    title = stringResource(R.string.info_voice),
+                    value = voiceModel ?: stringResource(R.string.info_voice_none)
+                )
+            }
+            item {
+                InfoCard(
+                    icon = Icons.Filled.Favorite,
+                    title = stringResource(R.string.info_nostalgic),
+                    value = stringResource(
+                        if (nostalgic) R.string.info_on else R.string.info_off
+                    )
+                )
+            }
         }
     }
 }
