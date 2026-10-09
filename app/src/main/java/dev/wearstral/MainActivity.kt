@@ -73,7 +73,8 @@ class MainActivity : ComponentActivity() {
                     onSetNostalgic = settingsViewModel::setNostalgicMode,
                     onVoiceTap = chatViewModel::onVoiceTap,
                     onVoiceFinalConsumed = chatViewModel::onVoiceFinalConsumed,
-                    onVoiceLanguageTap = voiceViewModel::onLanguageTap
+                    onVoiceLanguageTap = voiceViewModel::onLanguageTap,
+                    onVoiceLanguageDelete = voiceViewModel::onDeleteLanguageTap
                 )
             }
         }

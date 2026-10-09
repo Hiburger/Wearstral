@@ -3,11 +3,9 @@ package dev.wearstral.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -43,6 +41,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -51,9 +50,14 @@ import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TimeText
+import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
+import androidx.wear.compose.foundation.lazy.ScalingLazyColumnDefaults
+import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import dev.wearstral.R
 import dev.wearstral.update.ApkInstaller
 import dev.wearstral.update.UpdateChecker
+
+// 56. Wait, 56?!
 
 @Composable
 fun SettingsScreen(
@@ -73,9 +77,8 @@ fun SettingsScreen(
     var downloading by remember { mutableStateOf(false) }
     var downloadProgress by remember { mutableStateOf(0f) }
     var downloadFailed by remember { mutableStateOf(false) }
-    val scrollState = rememberScrollState()
-    // keep the screen awake while an update downloads so Wear OS does not
-    // freeze the app mid-transfer
+    val listState = rememberScalingLazyListState()
+    // keep the screen awake while an update downloads
     val view = LocalView.current
     DisposableEffect(downloading) {
         view.keepScreenOn = downloading
@@ -94,219 +97,246 @@ fun SettingsScreen(
         }
     }
     AppScaffold(timeText = { TimeText() }, modifier = modifier) {
-        Column(
+        ScalingLazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState)
-                .rotaryScroll(scrollState)
-                .padding(top = 44.dp, start = 24.dp, end = 24.dp, bottom = 44.dp),
+                .rotaryScroll(listState),
+            contentPadding = PaddingValues(top = 32.dp, start = 24.dp, end = 24.dp, bottom = 44.dp),
+            autoCentering = null,
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            scalingParams = ScalingLazyColumnDefaults.scalingParams(edgeAlpha = 1f)
         ) {
-            Text(
-                text = stringResource(R.string.settings_title),
-                style = TextStyle(fontSize = 15.sp, color = MutedColor)
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(SurfaceColor)
-                    .border(1.dp, BorderColor, RoundedCornerShape(14.dp))
-                    .clickable { onOpenApiKey() }
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Key,
-                    contentDescription = null,
-                    tint = colorResource(R.color.mistral_orange),
-                    modifier = Modifier.size(22.dp)
-                )
+            item {
                 Text(
-                    text = stringResource(R.string.settings_api_key),
-                    style = TextStyle(fontSize = 15.sp, color = Color.White)
+                    text = stringResource(R.string.settings_title),
+                    style = TextStyle(fontSize = 15.sp, color = MutedColor)
                 )
             }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(SurfaceColor)
-                    .border(1.dp, BorderColor, RoundedCornerShape(14.dp))
-                    .clickable { onOpenVoice() }
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Mic,
-                    contentDescription = null,
-                    tint = colorResource(R.color.mistral_orange),
-                    modifier = Modifier.size(22.dp)
-                )
-                Text(
-                    text = stringResource(R.string.settings_voice),
-                    style = TextStyle(fontSize = 15.sp, color = Color.White)
-                )
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(SurfaceColor)
-                    .border(1.dp, BorderColor, RoundedCornerShape(14.dp))
-                    .clickable { onToggleNostalgic(!nostalgic) }
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Favorite,
-                    contentDescription = null,
-                    tint = colorResource(R.color.mistral_orange),
-                    modifier = Modifier.size(22.dp)
-                )
-                Text(
-                    text = stringResource(R.string.settings_nostalgic),
-                    style = TextStyle(fontSize = 15.sp, color = Color.White),
-                    modifier = Modifier.weight(1f),
-                    maxLines = 1
-                )
-                MiniToggle(checked = nostalgic)
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(SurfaceColor)
-                    .border(1.dp, BorderColor, RoundedCornerShape(14.dp))
-                    .clickable { onOpenInfo() }
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Info,
-                    contentDescription = null,
-                    tint = colorResource(R.color.mistral_orange),
-                    modifier = Modifier.size(22.dp)
-                )
-                Text(
-                    text = stringResource(R.string.settings_info),
-                    style = TextStyle(fontSize = 15.sp, color = Color.White)
-                )
-            }
-            val apkUrl =
-                (updateState as? UpdateChecker.UpdateState.UpdateAvailable)?.release?.apkUrl
-            val busy = downloading || updateState is UpdateChecker.UpdateState.Checking
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(SurfaceColor)
-                    .border(1.dp, BorderColor, RoundedCornerShape(14.dp))
-                    .clickable {
-                        when {
-                            busy -> Unit
-                            apkUrl != null -> {
-                                downloading = true
-                                downloadFailed = false
-                                downloadProgress = 0f
-                                scope.launch {
-                                    ApkInstaller.downloadAndInstall(
-                                        context = context,
-                                        url = apkUrl,
-                                        onProgress = { p -> downloadProgress = p }
-                                    ).onFailure { downloadFailed = true }
-                                    downloading = false
-                                }
-                            }
-                            else -> UpdateChecker.checkNow(context)
-                        }
-                    }
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.CloudDownload,
-                    contentDescription = null,
-                    tint = colorResource(R.color.mistral_orange),
-                    modifier = Modifier.size(22.dp)
-                )
-                Text(
-                    text = when {
-                        downloading -> stringResource(
-                            R.string.update_downloading,
-                            (downloadProgress * 100).toInt()
-                        )
-                        downloadFailed -> stringResource(R.string.update_download_failed)
-                        else -> when (val s = updateState) {
-                            is UpdateChecker.UpdateState.Idle ->
-                                stringResource(R.string.settings_check_updates)
-                            is UpdateChecker.UpdateState.Checking ->
-                                stringResource(R.string.update_checking)
-                            is UpdateChecker.UpdateState.UpToDate ->
-                                stringResource(R.string.update_up_to_date)
-                            is UpdateChecker.UpdateState.UpdateAvailable ->
-                                stringResource(R.string.update_available, s.release.tagName)
-                            is UpdateChecker.UpdateState.Error ->
-                                stringResource(R.string.update_check_failed)
-                        }
-                    },
-                    style = TextStyle(fontSize = 14.sp, color = Color.White),
-                    maxLines = 1
-                )
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(SurfaceColor)
-                    .border(
-                        1.dp,
-                        if (confirmClear) Color(0xFFFF8A65) else BorderColor,
-                        RoundedCornerShape(14.dp)
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(SurfaceColor)
+                        .border(1.dp, BorderColor, RoundedCornerShape(14.dp))
+                        .clickable { onOpenApiKey() }
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Key,
+                        contentDescription = null,
+                        tint = colorResource(R.color.mistral_orange),
+                        modifier = Modifier.size(22.dp)
                     )
-                    .clickable {
-                        if (confirmClear) {
-                            confirmClear = false
-                            onClearHistory()
-                            clearedFlash = true
-                        } else {
-                            confirmClear = true
+                    Text(
+                        text = stringResource(R.string.settings_api_key),
+                        style = TextStyle(fontSize = 15.sp, color = Color.White)
+                    )
+                }
+            }
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(SurfaceColor)
+                        .border(1.dp, BorderColor, RoundedCornerShape(14.dp))
+                        .clickable { onOpenVoice() }
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Mic,
+                        contentDescription = null,
+                        tint = colorResource(R.color.mistral_orange),
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_voice),
+                        style = TextStyle(fontSize = 15.sp, color = Color.White)
+                    )
+                }
+            }
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(SurfaceColor)
+                        .border(1.dp, BorderColor, RoundedCornerShape(14.dp))
+                        .clickable { onToggleNostalgic(!nostalgic) }
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Favorite,
+                        contentDescription = null,
+                        tint = colorResource(R.color.mistral_orange),
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_nostalgic),
+                        style = TextStyle(fontSize = 15.sp, color = Color.White),
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    MiniToggle(checked = nostalgic)
+                }
+            }
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(SurfaceColor)
+                        .border(1.dp, BorderColor, RoundedCornerShape(14.dp))
+                        .clickable { onOpenInfo() }
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Info,
+                        contentDescription = null,
+                        tint = colorResource(R.color.mistral_orange),
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_info),
+                        style = TextStyle(fontSize = 15.sp, color = Color.White)
+                    )
+                }
+            }
+            item {
+                val apkUrl =
+                    (updateState as? UpdateChecker.UpdateState.UpdateAvailable)?.release?.apkUrl
+                val busy = downloading || updateState is UpdateChecker.UpdateState.Checking
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(SurfaceColor)
+                        .border(1.dp, BorderColor, RoundedCornerShape(14.dp))
+                        .clickable {
+                            when {
+                                busy -> Unit
+                                apkUrl != null -> {
+                                    downloading = true
+                                    downloadFailed = false
+                                    downloadProgress = 0f
+                                    scope.launch {
+                                        ApkInstaller.downloadAndInstall(
+                                            context = context,
+                                            url = apkUrl,
+                                            onProgress = { p -> downloadProgress = p }
+                                        ).onFailure { downloadFailed = true }
+                                        downloading = false
+                                    }
+                                }
+
+                                else -> UpdateChecker.checkNow(context)
+                            }
                         }
-                    }
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Icon(
-                    imageVector = if (clearedFlash) Icons.Filled.Check else Icons.Filled.Delete,
-                    contentDescription = null,
-                    tint = if (clearedFlash) colorResource(R.color.mistral_orange) else Color(0xFFFF8A65),
-                    modifier = Modifier.size(22.dp)
-                )
-                Text(
-                    text = stringResource(
-                        when {
-                            clearedFlash -> R.string.settings_cleared
-                            confirmClear -> R.string.settings_clear_confirm
-                            else -> R.string.settings_clear_history
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.CloudDownload,
+                        contentDescription = null,
+                        tint = colorResource(R.color.mistral_orange),
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        text = when {
+                            downloading -> stringResource(
+                                R.string.update_downloading,
+                                (downloadProgress * 100).toInt()
+                            )
+
+                            downloadFailed -> stringResource(R.string.update_download_failed)
+                            else -> when (val s = updateState) {
+                                is UpdateChecker.UpdateState.Idle ->
+                                    stringResource(R.string.settings_check_updates)
+
+                                is UpdateChecker.UpdateState.Checking ->
+                                    stringResource(R.string.update_checking)
+
+                                is UpdateChecker.UpdateState.UpToDate ->
+                                    stringResource(R.string.update_up_to_date)
+
+                                is UpdateChecker.UpdateState.UpdateAvailable ->
+                                    stringResource(R.string.update_available, s.release.tagName)
+
+                                is UpdateChecker.UpdateState.Error ->
+                                    stringResource(R.string.update_check_failed)
+                            }
+                        },
+                        style = TextStyle(fontSize = 14.sp, color = Color.White),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(SurfaceColor)
+                        .border(
+                            1.dp,
+                            if (confirmClear) Color(0xFFFF8A65) else BorderColor,
+                            RoundedCornerShape(14.dp)
+                        )
+                        .clickable {
+                            if (confirmClear) {
+                                confirmClear = false
+                                onClearHistory()
+                                context.haptic(Haptic.HeavyClick)
+                                clearedFlash = true
+                            } else {
+                                context.haptic(Haptic.Tick)
+                                confirmClear = true
+                            }
                         }
-                    ),
-                    style = TextStyle(
-                        fontSize = 14.sp,
-                        color = when {
-                            clearedFlash -> colorResource(R.color.mistral_orange)
-                            confirmClear -> Color(0xFFFF8A65)
-                            else -> Color.White
-                        }
-                    ),
-                    maxLines = 1
-                )
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = if (clearedFlash) Icons.Filled.Check else Icons.Filled.Delete,
+                        contentDescription = null,
+                        tint = colorResource(R.color.mistral_orange),
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        text = stringResource(
+                            when {
+                                clearedFlash -> R.string.settings_cleared
+                                confirmClear -> R.string.settings_clear_confirm
+                                else -> R.string.settings_clear_history
+                            }
+                        ),
+                        style = TextStyle(
+                            fontSize = 14.sp,
+                            color = when {
+                                clearedFlash -> colorResource(R.color.mistral_orange)
+                                confirmClear -> Color(0xFFFF8A65)
+                                else -> Color.White
+                            }
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }

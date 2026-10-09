@@ -60,6 +60,10 @@ class SettingsRepository(private val context: Context) {
         context.dataStore.edit { prefs -> prefs[KEY_VOICE_LANGUAGE] = languageId }
     }
 
+    suspend fun clearVoiceLanguage() {
+        context.dataStore.edit { prefs -> prefs.remove(KEY_VOICE_LANGUAGE) }
+    }
+
     private suspend fun readKey(prefs: Preferences): String? {
         val encrypted = prefs[KEY_API_ENCRYPTED] ?: return null
         return runCatching { ApiKeyCipher.decrypt(encrypted) }

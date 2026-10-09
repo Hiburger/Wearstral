@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Wearstral</string>
-    <string name="key_title_new">Enter your Mistral API&#160;key</string>
+    <string name="key_title_new">Enter your API&#160;key</string>
     <string name="key_title_saved">Key saved ••••%1$s</string>
     <string name="key_show">Show</string>
     <string name="key_hide">Hide</string>
@@ -11,10 +11,25 @@
     <string name="key_remote_hint">On a device on the same Wi-Fi, open:</string>
     <string name="key_remote_pin">PIN %1$s</string>
     <string name="key_remote_stop">Stop</string>
-    <string name="key_remote_saved">Key saved !</string>
+    <string name="key_remote_saved">Key saved</string>
     <string name="key_remote_nowifi">Connect the watch to Wi-Fi first</string>
     <string name="key_remote_error">Couldn\'t start, try again</string>
     <string name="chat_hint">I\'m all hears :)</string>
+    <string name="chat_greeting_1">What\'s up&#160;?</string>
+    <string name="chat_greeting_2">Hey there</string>
+    <string name="chat_greeting_3">Hi friend</string>
+    <string name="chat_greeting_4">I\'m here</string>
+    <string name="chat_greeting_5">Good day&#160;!</string>
+    <string name="chat_greeting_6">Oh, you\'re back</string>
+    <string name="chat_greeting_7">Hey hey&#160;!</string>
+    <string name="chat_greeting_8">What\'s on your mind&#160;?</string>
+    <string name="chat_greeting_9">Ready when you are</string>
+    <string name="chat_greeting_10">Helloooo</string>
+    <string name="chat_greeting_11">Missed me&#160;?</string>
+    <string name="chat_greeting_12">At your service</string>
+    <string name="chat_greeting_13">Bonjour&#160;!</string>
+    <string name="chat_greeting_14">Go ahead&#160;!</string>
+    <string name="chat_greeting_15">Don\'t ask to ask</string>
     <string name="chat_input_hint">Write here…</string>
     <string name="chat_role_you">You</string>
     <string name="chat_role_ai">Vibe</string>
@@ -59,8 +74,9 @@
     <string name="voice_active">Active</string>
     <string name="voice_downloading">Downloading %1$d%%</string>
     <string name="voice_failed">Failed · tap to retry</string>
+    <string name="voice_delete_model">Delete model</string>
     <string name="chat_voice">Voice input</string>
-    <string name="chat_voice_not_setup">Download a voice language in Settings</string>
+    <string name="chat_voice_not_setup">No voice model installed!</string>
     <string name="chat_voice_denied">Microphone permission needed</string>
     <string name="chat_voice_mic_error">Microphone error, try again</string>
     <string name="chat_error_invalid_key">Invalid API key, check Settings</string>

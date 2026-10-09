@@ -3,8 +3,12 @@ package dev.wearstral.ui
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -49,7 +53,8 @@ fun App(
     onSetNostalgic: (Boolean) -> Unit,
     onVoiceTap: () -> Unit,
     onVoiceFinalConsumed: () -> Unit,
-    onVoiceLanguageTap: (String) -> Unit
+    onVoiceLanguageTap: (String) -> Unit,
+    onVoiceLanguageDelete: (String) -> Unit
 ) {
     val nostalgic by nostalgicModeFlow.collectAsState()
     val keyState by keyStateFlow.collectAsState()
@@ -62,13 +67,16 @@ fun App(
                 CircularProgressIndicator()
             }
         }
+
         ApiKeyState.Unset -> KeyScreen(
             currentKey = null,
             onSave = onSaveKey,
             onClear = onClearKey
         )
+
         is ApiKeyState.Set -> {
             val navController = rememberSwipeDismissableNavController()
+            var openPanelOnChat by remember { mutableStateOf(false) }
             SwipeDismissableNavHost(
                 navController = navController,
                 startDestination = "chat"
@@ -80,6 +88,7 @@ fun App(
                     val activeId by activeConversationIdFlow.collectAsState()
                     val voiceState by voiceStateFlow.collectAsState()
                     val voiceFinal by voiceFinalFlow.collectAsState()
+                    val voiceRows by voiceRowsFlow.collectAsState()
                     val apiKey = (destKeyState as? ApiKeyState.Set)?.key
                     if (apiKey != null) {
                         ChatScreen(
@@ -89,21 +98,26 @@ fun App(
                             activeId = activeId,
                             voiceState = voiceState,
                             voiceFinal = voiceFinal,
+                            voiceReady = voiceRows.any { it.active && it.downloaded },
                             onSend = { onSend(apiKey, it) },
                             onNewChat = onNewChat,
                             onOpenSettings = { navController.navigate("settings") },
                             onOpenHistory = { navController.navigate("history") },
                             onOpenConversation = onOpenConversation,
                             onVoiceTap = onVoiceTap,
-                            onVoiceFinalConsumed = onVoiceFinalConsumed
+                            onVoiceFinalConsumed = onVoiceFinalConsumed,
+                            openPanelOnChat = openPanelOnChat,
+                            onPanelConsumed = { openPanelOnChat = false }
                         )
                     }
                 }
                 composable("history") {
+                    LaunchedEffect(Unit) { openPanelOnChat = true }
                     val history by historyFlow.collectAsState()
                     HistoryScreen(
                         history = history,
                         onOpen = { id ->
+                            openPanelOnChat = false
                             onOpenConversation(id)
                             navController.popBackStack()
                         },
@@ -131,7 +145,8 @@ fun App(
                     val rows by voiceRowsFlow.collectAsState()
                     VoiceScreen(
                         rows = rows,
-                        onLanguageTap = onVoiceLanguageTap
+                        onLanguageTap = onVoiceLanguageTap,
+                        onDeleteLanguage = onVoiceLanguageDelete
                     )
                 }
                 composable("settings") {

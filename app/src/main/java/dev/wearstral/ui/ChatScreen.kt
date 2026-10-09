@@ -21,6 +21,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -34,13 +35,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
@@ -99,6 +98,10 @@ import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.foundation.rotary.RotaryScrollableDefaults
 import androidx.wear.compose.foundation.rotary.rotaryScrollable
+import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
+import androidx.wear.compose.foundation.lazy.ScalingLazyColumnDefaults
+import androidx.wear.compose.foundation.lazy.items
+import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import dev.wearstral.R
 import dev.wearstral.chat.ChatError
 import dev.wearstral.chat.ChatState
@@ -106,6 +109,7 @@ import dev.wearstral.chat.Conversation
 import dev.wearstral.chat.Role
 import dev.wearstral.voice.VoiceState
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.math.PI
 import kotlin.math.abs
@@ -115,6 +119,26 @@ import kotlin.math.sin
 private const val MAX_BLUR = 16f
 private const val PANEL_MAX_ROWS = 4
 
+// A few greetings :) Shown on new chat screens; re-rolled on app launch & new chats
+private val chatGreetings = listOf(
+    R.string.chat_hint,
+    R.string.chat_greeting_1,
+    R.string.chat_greeting_2,
+    R.string.chat_greeting_3,
+    R.string.chat_greeting_4,
+    R.string.chat_greeting_5,
+    R.string.chat_greeting_6,
+    R.string.chat_greeting_7,
+    R.string.chat_greeting_8,
+    R.string.chat_greeting_9,
+    R.string.chat_greeting_10,
+    R.string.chat_greeting_11,
+    R.string.chat_greeting_12,
+    R.string.chat_greeting_13,
+    R.string.chat_greeting_14,
+    R.string.chat_greeting_15
+)
+
 @Composable
 fun ChatScreen(
     state: ChatState,
@@ -123,6 +147,7 @@ fun ChatScreen(
     activeId: Long,
     voiceState: VoiceState,
     voiceFinal: String?,
+    voiceReady: Boolean,
     onSend: (String) -> Unit,
     onNewChat: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -130,9 +155,12 @@ fun ChatScreen(
     onOpenConversation: (Long) -> Unit,
     onVoiceTap: () -> Unit,
     onVoiceFinalConsumed: () -> Unit,
+    openPanelOnChat: Boolean = false,
+    onPanelConsumed: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var input by rememberSaveable { mutableStateOf("") }
+    val greetingRes = remember(activeId) { chatGreetings.random() }
     val listState = rememberLazyListState()
     val keyboard = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -168,18 +196,26 @@ fun ChatScreen(
     val submit: () -> Unit = {
         if (input.isNotBlank() && !state.isSending) {
             onSend(input)
+            context.haptic(Haptic.Click)
             input = ""
             keyboard?.hide()
             focusManager.clearFocus()
         }
     }
 
+    var prevVoiceActive by remember { mutableStateOf(false) }
     LaunchedEffect(voiceState) {
         val current = voiceState
+        val active = current is VoiceState.Listening || current is VoiceState.Preparing
+        if (active && !prevVoiceActive) {
+            context.haptic(Haptic.Tick)
+        }
+        prevVoiceActive = active
         if (current is VoiceState.Listening) {
             input = current.partial
             voiceHintRes = null
         } else if (current is VoiceState.Failed) {
+            context.haptic(Haptic.HeavyClick)
             voiceHintRes = when (current.reason) {
                 VoiceState.Reason.NoModel -> R.string.chat_voice_not_setup
                 VoiceState.Reason.MicError -> R.string.chat_voice_mic_error
@@ -201,10 +237,29 @@ fun ChatScreen(
         }
     }
 
+    // the reply landing (or failing) is the moment the user feels the wait end
+    var wasSending by remember { mutableStateOf(false) }
+    LaunchedEffect(state.isSending, state.error) {
+        if (wasSending && !state.isSending) {
+            if (state.error != null) context.haptic(Haptic.HeavyClick) else context.haptic(Haptic.Tick)
+        }
+        wasSending = state.isSending
+    }
+
     var panelWidthPx by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
     val panelOffset = remember { Animatable(0f) }
-    val panelScrollState = rememberScrollState()
+    val panelScrollState = rememberScalingLazyListState()
+
+    // when arriving from a history dismissal the panel is already wanted open:
+    // snap it wide as soon as the panel width is known
+    LaunchedEffect(openPanelOnChat) {
+        if (openPanelOnChat) {
+            snapshotFlow { panelWidthPx }.first { it > 0 }
+            panelOffset.snapTo(panelWidthPx.toFloat())
+            onPanelConsumed()
+        }
+    }
     val progress = if (panelWidthPx > 0) {
         (panelOffset.value / panelWidthPx).coerceIn(0f, 1f)
     } else {
@@ -218,6 +273,13 @@ fun ChatScreen(
     val panelOpen = progress > 0.5f
     LaunchedEffect(panelOpen, state.isSending, state.messages.size) {
         (if (panelOpen) panelFocusRequester else chatFocusRequester).requestFocus()
+    }
+    var prevPanelOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(panelOpen) {
+        if (panelOpen != prevPanelOpen) {
+            context.haptic(Haptic.Tick)
+            prevPanelOpen = panelOpen
+        }
     }
 
     fun closePanel() {
@@ -245,8 +307,10 @@ fun ChatScreen(
     // always reappears from the beginning (buttons included) on the next open.
     LaunchedEffect(Unit) {
         snapshotFlow { panelOffset.value }.collect { offset ->
-            if (offset < 1f && panelScrollState.value != 0) {
-                panelScrollState.scrollTo(0)
+            if (offset < 1f &&
+                (panelScrollState.centerItemIndex != 0 || panelScrollState.centerItemScrollOffset != 0)
+            ) {
+                panelScrollState.scrollToItem(0)
             }
         }
     }
@@ -266,13 +330,10 @@ fun ChatScreen(
                     state = listState,
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(top = 44.dp, bottom = 48.dp, start = 24.dp, end = 24.dp)
+                        .padding(top = 32.dp, bottom = 44.dp, start = 24.dp, end = 24.dp)
                         .rotaryScrollable(
                             behavior = RotaryScrollableDefaults.behavior(scrollableState = listState),
                             focusRequester = chatFocusRequester,
-                            // the chat list is reversed (newest at the bottom),
-                            // so flip the crown direction to match every other
-                            // scrollable in the app
                             reverseDirection = true
                         )
                         .focusable(),
@@ -309,7 +370,7 @@ fun ChatScreen(
                                                 moved = maxOf(
                                                     moved,
                                                     abs(change.position.x - down.position.x) +
-                                                        abs(change.position.y - down.position.y)
+                                                            abs(change.position.y - down.position.y)
                                                 )
                                             }
                                             if (moved < 20f) focusRequester.requestFocus()
@@ -335,17 +396,24 @@ fun ChatScreen(
                                     modifier = Modifier.fillMaxWidth().focusRequester(focusRequester)
                                 )
                             }
-                            val listening = voiceState is VoiceState.Listening
+                            val listening = voiceState is VoiceState.Listening ||
+                                    voiceState is VoiceState.Preparing
                             Box(
                                 modifier = Modifier
                                     .size(34.dp)
                                     .alpha(if (state.isSending) 0.5f else 1f)
                                     .clip(CircleShape)
                                     .background(colorResource(R.color.mistral_orange))
-                                    .pointerInput(listening) {
+                                    // long-press only exists when a model can
+                                    // actually answer it; no dead taps otherwise
+                                    .pointerInput(listening, voiceReady) {
                                         detectTapGestures(
                                             onTap = { if (listening) onVoiceTap() else submit() },
-                                            onLongPress = { if (!listening) requestVoice() }
+                                            onLongPress = if (voiceReady) {
+                                                { if (!listening) requestVoice() }
+                                            } else {
+                                                null
+                                            }
                                         )
                                     },
                                 contentAlignment = Alignment.Center
@@ -392,7 +460,9 @@ fun ChatScreen(
                     if (state.messages.isEmpty()) {
                         item {
                             Column(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 10.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Icon(
@@ -402,9 +472,11 @@ fun ChatScreen(
                                     modifier = Modifier.size(46.dp)
                                 )
                                 Text(
-                                    text = stringResource(R.string.chat_hint),
+                                    text = stringResource(greetingRes),
                                     style = TextStyle(fontSize = 13.sp, color = MutedColor),
                                     textAlign = TextAlign.Center,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(top = 10.dp)
@@ -504,51 +576,57 @@ fun ChatScreen(
                 }
         ) {
             val archived = history.filterNot { it.id == activeId }
-            Column(
+            ScalingLazyColumn(
+                state = panelScrollState,
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(panelScrollState)
                     .rotaryScrollable(
                         behavior = RotaryScrollableDefaults.behavior(scrollableState = panelScrollState),
                         focusRequester = panelFocusRequester
                     )
-                    .focusable()
-                    .padding(top = 44.dp, start = 24.dp, end = 24.dp, bottom = 44.dp),
+                    .focusable(),
+                contentPadding = PaddingValues(top = 32.dp, start = 24.dp, end = 24.dp, bottom = 44.dp),
+                autoCentering = null,
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                scalingParams = ScalingLazyColumnDefaults.scalingParams(edgeAlpha = 1f)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    PanelButton(
-                        icon = Icons.Filled.Add,
-                        contentDescription = stringResource(R.string.chat_new),
-                        onClick = {
-                            scope.launch { panelOffset.animateTo(0f) }
-                            onNewChat()
-                        }
-                    )
-                    PanelButton(
-                        icon = Icons.Filled.Settings,
-                        contentDescription = stringResource(R.string.chat_settings),
-                        onClick = {
-                            scope.launch { panelOffset.snapTo(0f) }
-                            onOpenSettings()
-                        }
-                    )
+                item {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        PanelButton(
+                            icon = Icons.Filled.Add,
+                            contentDescription = stringResource(R.string.chat_new),
+                            onClick = {
+                                scope.launch { panelOffset.animateTo(0f) }
+                                onNewChat()
+                            }
+                        )
+                        PanelButton(
+                            icon = Icons.Filled.Settings,
+                            contentDescription = stringResource(R.string.chat_settings),
+                            onClick = {
+                                scope.launch { panelOffset.snapTo(0f) }
+                                onOpenSettings()
+                            }
+                        )
+                    }
                 }
                 if (archived.isEmpty()) {
-                    Text(
-                        text = stringResource(R.string.chat_panel_history_hint),
-                        style = TextStyle(fontSize = 12.sp, color = HintColor),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 24.dp)
-                    )
+                    item {
+                        Text(
+                            text = stringResource(R.string.chat_panel_history_hint),
+                            style = TextStyle(fontSize = 12.sp, color = HintColor),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 24.dp)
+                        )
+                    }
                 } else {
-                    archived.take(PANEL_MAX_ROWS - 1).forEach { conversation ->
+                    items(archived.take(PANEL_MAX_ROWS - 1)) { conversation ->
                         PanelConversationRow(
                             title = conversation.title,
                             onClick = {
@@ -557,14 +635,16 @@ fun ChatScreen(
                             }
                         )
                     }
-                    PanelActionRow(
-                        icon = Icons.AutoMirrored.Filled.List,
-                        label = stringResource(R.string.history_open_all),
-                        onClick = {
-                            closePanel()
-                            onOpenHistory()
-                        }
-                    )
+                    item {
+                        PanelActionRow(
+                            icon = Icons.AutoMirrored.Filled.List,
+                            label = stringResource(R.string.history_open_all),
+                            onClick = {
+                                closePanel()
+                                onOpenHistory()
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -649,10 +729,13 @@ private fun String.toChatMarkdown(): AnnotatedString = buildAnnotatedString {
             val style = when {
                 groups[1].isNotEmpty() || groups[2].isNotEmpty() ->
                     SpanStyle(fontWeight = FontWeight.Bold)
+
                 groups[3].isNotEmpty() ->
                     SpanStyle(textDecoration = TextDecoration.LineThrough)
+
                 groups[4].isNotEmpty() ->
                     SpanStyle(fontFamily = FontFamily.Monospace, background = SurfaceColor)
+
                 else -> SpanStyle(fontStyle = FontStyle.Italic)
             }
             withStyle(style) {
