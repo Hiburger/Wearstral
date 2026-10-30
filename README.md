@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="wearstral.png" width="120" alt="Wearstral logo">
+</p>
+
 # Wearstral
 
 A native Wear OS client for chatting with [Mistral AI](https://mistral.ai) models through the Mistral API.
